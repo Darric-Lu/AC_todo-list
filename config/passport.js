@@ -1,5 +1,6 @@
 const passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy
+const FacebookStrategy = require('passport-facebook').Strategy
 const User = require('../models/user')
 const bcrypt = require('bcryptjs')
 
@@ -33,6 +34,49 @@ module.exports = app => {
         .then(user => done(null, user))
         .catch(err => done(err, null))
     })
-  }))
+  })),
+    passport.use(new FacebookStrategy({
+      clientID: process.env.FACEBOOK_ID,
+      clientSecret: process.env.FACEBOOK_SECRET,
+      callbackURL: process.env.FACEBOOK_CALLBACK,
+      profileFields: ['email', 'displayName']
+    }, (accessToken, refreshToken, profile, done) => {
+      console.log(profile)
+      const { email, name } = profile._json
+      console.log("email", email)
+      console.log("name", name)
+      User.findOne({ email })
+        .then(user => {
+          console.log("user findOne", user)
+          if (user) {
+            console.log("使用者存在")
+            return done(null, user)
+          }
+          const randomPassword = Math.random().toString(36).slice(-8)
+          bcrypt
+            .genSalt(10)
+            .then(salt => bcrypt.hash(randomPassword, salt))
+            .then(hash => User.create({
+              name,
+              email,
+              password: hash
+            }))
+            .then(user => done(null, user))
+            .catch(err => done(err, false))
+        })
+        .catch(err => {
+          console.log("err", err)
+          done(err, false)
+        })
+      passport.serializeUser((user, done) => {
+        done(null, user.id)
+      })
+      passport.deserializeUser((id, done) => {
+        User.findById(id)
+          .lean()
+          .then(user => done(null, user))
+          .catch(err => done(err, null))
+      })
+    }))
 }
 
