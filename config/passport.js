@@ -43,11 +43,11 @@ module.exports = app => {
     }, (accessToken, refreshToken, profile, done) => {
       console.log(profile)
       const { email, name } = profile._json
-      console.log("email", email)
-      console.log("name", name)
+      // console.log("email", email)
+      // console.log("name", name)
       User.findOne({ email })
         .then(user => {
-          console.log("user findOne", user)
+          // console.log("user findOne", user)
           if (user) {
             console.log("使用者存在")
             return done(null, user)
